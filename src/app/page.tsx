@@ -3,6 +3,7 @@
 import { useState } from "react";
 import CompanySearch from "@/components/CompanySearch";
 import NetworkGraph from "@/components/NetworkGraph";
+import LoadingSpinner from "@/components/LoadingSpinner";
 import { CompanyNode, CompanyRelationship } from "@/types/company";
 
 export default function Home() {
@@ -62,7 +63,8 @@ export default function Home() {
 
       {isLoading ? (
         <div className="loading-container">
-          <p>Lade Unternehmensdaten...</p>
+          <LoadingSpinner />
+          <p className="text-center mt-4">Lade Unternehmensdaten...</p>
         </div>
       ) : error ? (
         <div className="error-container">
