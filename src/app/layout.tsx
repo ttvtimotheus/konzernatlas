@@ -1,51 +1,67 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+import React from 'react';
+import type { Metadata } from 'next';
+import './globals.css';
+import { globalStyles } from '@/styles/stitches.config';
+import Navbar from '@/components/ui/Navbar';
 
 export const metadata: Metadata = {
-  title: "Konzernatlas - Unternehmensbeziehungen visualisiert",
-  description: "Visualisiere Unternehmensbeziehungen und Eigentumsverhältnisse auf Basis von Wikidata",
-  keywords: ["Unternehmensbeziehungen", "Konzernstruktur", "Datenvisualisierung", "Wikidata"],
-};
+  title: 'Konzernatlas – Wem gehört die Welt?',
+  description: 'Interaktive Visualisierung von globalen Konzernverflechtungen. Entdecke, wem die Welt wirklich gehört.',
+  keywords: ['Konzernatlas', 'Corporate Ownership', 'Kapitalismuskritik', 'Wikidata', 'Network Visualization', 'Open Data'],
+  authors: [{ name: 'Konzernatlas' }],
+  openGraph: {
+    title: 'Konzernatlas – Wem gehört die Welt?',
+    description: 'Interaktive Visualisierung von globalen Konzernverflechtungen',
+    url: 'https://konzernatlas.de',
+    siteName: 'Konzernatlas',
+    images: [
+      {
+        url: 'https://konzernatlas.de/og-image.jpg',
+        width: 1200,
+        height: 630,
+        alt: 'Konzernatlas – Wem gehört die Welt?',
+      },
+    ],
+    locale: 'de_DE',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Konzernatlas – Wem gehört die Welt?',
+    description: 'Interaktive Visualisierung von globalen Konzernverflechtungen',
+    images: ['https://konzernatlas.de/og-image.jpg'],
+  },
+}
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: {
+  children: React.ReactNode
+}) {
+  // Globale Styles initialisieren
+  globalStyles();
+  
   return (
     <html lang="de">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} bg-gray-950 text-white antialiased`}
-      >
-        <header className="container mx-auto py-4 px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between">
-            <div className="text-2xl font-bold text-cyan-400">Konzernatlas</div>
-            <nav className="text-sm">
-              <a href="https://github.com/ttvtimotheus/konzernatlas" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-white transition-colors">
-                GitHub
-              </a>
-            </nav>
-          </div>
-        </header>
-        <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+      </head>
+      <body>
+        {/* Konsistente Navigation */}
+        <Navbar />
+        
+        {/* Hauptinhalt */}
+        <main>
           {children}
         </main>
-        <footer className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 text-center text-sm text-gray-500">
-          <p>
-            Daten via <a href="https://www.wikidata.org" target="_blank" rel="noopener noreferrer" className="text-cyan-600 hover:text-cyan-500 transition-colors">Wikidata</a> (CC0) • 
+        
+        {/* Minimal Footer */}
+        <footer>
+          <div className="attribution">
+            Daten via <a href="https://www.wikidata.org" target="_blank" rel="noopener noreferrer">Wikidata</a> (CC0) • 
             © {new Date().getFullYear()} Konzernatlas
-          </p>
+          </div>
         </footer>
       </body>
     </html>

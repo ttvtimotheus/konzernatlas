@@ -1,216 +1,318 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import * as d3 from "d3";
-import { CompanyNode, CompanyRelationship } from "@/types/company";
+import React, { useEffect, useRef, useState } from 'react';
+import * as d3 from 'd3';
+import { CompanyNode, CompanyRelationship } from '@/types/company';
+import { CRITIQUE_MESSAGES } from '@/data/topCorporations';
 
 interface NetworkGraphProps {
   companies: CompanyNode[];
   relationships: CompanyRelationship[];
+  onNodeClick?: (companyId: string) => void;
 }
 
-export default function NetworkGraph({ companies, relationships }: NetworkGraphProps) {
-  const svgRef = useRef<SVGSVGElement>(null);
-  const tooltipRef = useRef<HTMLDivElement>(null);
-  const [selectedNode, setSelectedNode] = useState<CompanyNode | null>(null);
+// Zufällige kapitalismuskritische Nachricht auswählen
+const getRandomCritique = () => {
+  return CRITIQUE_MESSAGES[Math.floor(Math.random() * CRITIQUE_MESSAGES.length)];
+};
+
+export default function NetworkGraph({ companies, relationships, onNodeClick }: NetworkGraphProps) {
+  const svgRef = useRef<SVGSVGElement | null>(null);
+  const tooltipRef = useRef<HTMLDivElement | null>(null);
+  const [critiqueMessage, setCritiqueMessage] = useState<string>('');
 
   useEffect(() => {
     if (!svgRef.current || companies.length === 0) return;
 
+    const svg = d3.select(svgRef.current);
     const width = svgRef.current.clientWidth;
     const height = svgRef.current.clientHeight;
-
-    // Clear existing graph
-    d3.select(svgRef.current).selectAll("*").remove();
-
-    // Create container for zoom
-    const svg = d3.select(svgRef.current);
-    const g = svg.append("g");
-
-    // Add zoom functionality
-    const zoom = d3.zoom<SVGSVGElement, unknown>()
-      .scaleExtent([0.5, 5])
-      .on("zoom", (event) => {
-        g.attr("transform", event.transform);
-      });
-
-    svg.call(zoom);
-
-    // Create a tooltip
     const tooltip = d3.select(tooltipRef.current);
 
-    // Convert relationships to links
-    const links = relationships.map(rel => ({
-      source: rel.source,
-      target: rel.target,
-      type: rel.type
-    }));
+    // Clear any existing elements
+    svg.selectAll('*').remove();
 
-    // Create force simulation
-    const simulation = d3.forceSimulation<any, any>()
-      .force("link", d3.forceLink().id((d: any) => d.id).distance(100))
-      .force("charge", d3.forceManyBody().strength(-500))
-      .force("center", d3.forceCenter(width / 2, height / 2))
-      .force("collide", d3.forceCollide().radius(60));
+    // Create a container group for all elements to enable zooming
+    const container = svg.append('g');
 
-    // Draw links
-    const link = g.append("g")
-      .selectAll("line")
-      .data(links)
-      .enter()
-      .append("line")
-      .attr("class", "link")
-      .attr("stroke", "#4a5568")
-      .attr("stroke-width", 1.5)
-      .attr("stroke-dasharray", (d) => d.type === "owned_by" ? "0" : "5,5");
+    // Create the simulation with improved forces
+    const simulation = d3.forceSimulation(companies as d3.SimulationNodeDatum[])
+      .force('link', d3.forceLink(relationships)
+        .id((d: any) => d.id)
+        .distance(d => {
+          // Distanz basierend auf Beziehungstyp anpassen
+          const rel = d as unknown as CompanyRelationship;
+          return rel.type === 'full' ? 120 : 150;
+        }))
+      .force('charge', d3.forceManyBody().strength(-350))
+      .force('center', d3.forceCenter(width / 2, height / 2))
+      .force('x', d3.forceX(width / 2).strength(0.05))
+      .force('y', d3.forceY(height / 2).strength(0.05))
+      .force('collision', d3.forceCollide().radius(30));
 
-    // Draw nodes
-    const node = g.append("g")
-      .selectAll(".node")
-      .data(companies)
-      .enter()
-      .append("g")
-      .attr("class", "node")
-      .call(d3.drag<SVGGElement, any>()
-        .on("start", dragstarted)
-        .on("drag", dragged)
-        .on("end", dragended))
-      .on("click", (event, d) => {
-        setSelectedNode(d);
-        event.stopPropagation();
-      })
-      .on("mouseover", (event, d) => {
-        tooltip.style("visibility", "visible")
-          .html(`
-            <div class="font-bold">${d.label}</div>
-            ${d.industry ? `<div>Industry: ${d.industry}</div>` : ''}
-            ${d.country ? `<div>Country: ${d.country}</div>` : ''}
-            ${d.foundingYear ? `<div>Founded: ${d.foundingYear}</div>` : ''}
-          `)
-          .style("left", (event.pageX + 10) + "px")
-          .style("top", (event.pageY - 20) + "px");
-      })
-      .on("mouseout", () => {
-        tooltip.style("visibility", "hidden");
-      });
+    // Hintergrund für Zoom-Interaktionen
+    container.append('rect')
+      .attr('width', width)
+      .attr('height', height)
+      .attr('fill', 'none')
+      .attr('pointer-events', 'all');
 
-    // Add circles to nodes
-    node.append("circle")
-      .attr("r", 20)
-      .attr("fill", (d) => {
-        // Generate color based on company ID for consistency
-        const hash = d.id.split("").reduce((a, b) => {
-          a = ((a << 5) - a) + b.charCodeAt(0);
-          return a & a;
-        }, 0);
-        return d3.schemeCategory10[Math.abs(hash) % 10];
-      })
-      .attr("stroke", "#1a202c")
-      .attr("stroke-width", 2);
+    // Links mit unterschiedlichen Stilen basierend auf Beziehungstyp
+    const link = container.append('g')
+      .selectAll('line')
+      .data(relationships)
+      .enter().append('line')
+      .attr('class', 'link')
+      .attr('stroke-width', d => d.type === 'full' ? 2 : 1)
+      .attr('stroke-dasharray', d => d.type === 'partial' ? '5,5' : null)
+      .attr('marker-end', d => `url(#arrow-${d.type})`);
 
-    // Add text labels to nodes
-    node.append("text")
-      .text((d) => d.label)
-      .attr("x", 25)
-      .attr("y", 5)
-      .attr("text-anchor", "start")
-      .attr("fill", "#e2e8f0")
-      .attr("font-size", "12px");
+    // Pfeilspitzen für verschiedene Beziehungstypen
+    const defs = svg.append('defs');
 
-    // Define drag functions
-    function dragstarted(event: any) {
-      if (!event.active) simulation.alphaTarget(0.3).restart();
-      event.subject.fx = event.subject.x;
-      event.subject.fy = event.subject.y;
-    }
-
-    function dragged(event: any) {
-      event.subject.fx = event.x;
-      event.subject.fy = event.y;
-    }
-
-    function dragended(event: any) {
-      if (!event.active) simulation.alphaTarget(0);
-      event.subject.fx = null;
-      event.subject.fy = null;
-    }
-
-    // Update node and link positions on each tick
-    simulation.nodes(companies).on("tick", () => {
-      link
-        .attr("x1", (d: any) => d.source.x)
-        .attr("y1", (d: any) => d.source.y)
-        .attr("x2", (d: any) => d.target.x)
-        .attr("y2", (d: any) => d.target.y);
-
-      node.attr("transform", (d: any) => `translate(${d.x},${d.y})`);
+    ['full', 'partial', 'owner'].forEach(type => {
+      defs.append('marker')
+        .attr('id', `arrow-${type}`)
+        .attr('viewBox', '0 -5 10 10')
+        .attr('refX', 25)
+        .attr('refY', 0)
+        .attr('orient', 'auto')
+        .attr('markerWidth', 6)
+        .attr('markerHeight', 6)
+        .append('path')
+        .attr('d', 'M0,-5L10,0L0,5')
+        .attr('fill', type === 'full' ? 'var(--primary)' : 
+                     type === 'partial' ? 'var(--secondary)' : 'var(--muted)');
     });
 
-    simulation.force<d3.ForceLink<any, any>>("link")?.links(links);
+    // Knoten mit unterschiedlichen Stilen basierend auf nodeType
+    const node = container.append('g')
+      .selectAll('circle')
+      .data(companies)
+      .enter().append('circle')
+      .attr('class', d => `node node-${d.nodeType || 'default'}`)
+      .attr('r', d => {
+        // Größe basierend auf Knotentyp
+        if (d.nodeType === 'main') return 18;
+        if (d.nodeType === 'holding') return 14;
+        if (d.nodeType === 'parent') return 12;
+        return 10; // Standardgröße für andere Knotentypen
+      })
+      .attr('fill', d => {
+        // Farbe basierend auf Knotentyp
+        switch(d.nodeType) {
+          case 'main': return '#ffffff';
+          case 'holding': return 'var(--tertiary)';
+          case 'parent': return 'var(--tertiary)';
+          case 'full-ownership': return 'var(--primary)';
+          case 'partial-ownership': return 'var(--secondary)';
+          default: return '#64ffda';
+        }
+      })
+      .attr('stroke', d => d.nodeType === 'holding' || d.nodeType === 'parent' ? 'var(--foreground)' : 'none')
+      .attr('stroke-width', d => d.nodeType === 'holding' || d.nodeType === 'parent' ? 1.5 : 0)
+      .classed('pulse-animation', d => d.nodeType === 'main') // Hauptunternehmen pulsieren
+      .call(d3.drag<SVGCircleElement, any>()
+        .on('start', dragstarted)
+        .on('drag', dragged)
+        .on('end', dragended) as any);
 
-    // Center view on initial load
-    svg.call(zoom.transform, d3.zoomIdentity.translate(width/2, height/2).scale(0.8));
+    // Verbesserte Knotenbeschriftungen
+    const labels = container.append('g')
+      .selectAll('text')
+      .data(companies)
+      .enter().append('text')
+      .attr('dx', 15)
+      .attr('dy', '.35em')
+      .attr('class', 'node-label')
+      .text(d => d.label)
+      .style('fill', 'var(--foreground)')
+      .style('font-size', d => d.nodeType === 'main' ? '14px' : '12px')
+      .style('font-weight', d => d.nodeType === 'main' ? 'bold' : 'normal')
+      .style('pointer-events', 'none')
+      .style('text-shadow', '1px 1px 2px rgba(0,0,0,0.8)');
 
-    // Handle window resize
-    const handleResize = () => {
-      if (!svgRef.current) return;
-      const newWidth = svgRef.current.clientWidth;
-      const newHeight = svgRef.current.clientHeight;
+    // Verbesserte Tooltip-Interaktion mit kapitalismuskritischen Nachrichten
+    node.on('mouseover', function(event, d: CompanyNode) {
+      // Kritische Nachricht generieren
+      setCritiqueMessage(getRandomCritique());
 
-      simulation.force("center", d3.forceCenter(newWidth / 2, newHeight / 2));
-      simulation.alpha(0.3).restart();
-    };
+      const industry = d.industry ? `<div class="text-sm text-gray-300"><span class="font-bold">Branche:</span> ${d.industry}</div>` : '';
+      const country = d.country ? `<div class="text-sm text-gray-300"><span class="font-bold">Land:</span> ${d.country}</div>` : '';
+      const founded = d.inception ? `<div class="text-sm text-gray-300"><span class="font-bold">Gegründet:</span> ${d.inception}</div>` : '';
 
-    window.addEventListener("resize", handleResize);
+      tooltip.style('display', 'block')
+        .html(`
+          <div class="font-bold text-base mb-1">${d.label}</div>
+          ${industry}
+          ${country}
+          ${founded}
+          ${d.nodeType === 'full-ownership' ? '<div class="text-xs text-red-400 mt-1">Vollständig kontrolliert</div>' : ''}
+          ${d.nodeType === 'partial-ownership' ? '<div class="text-xs text-orange-400 mt-1">Teilweise kontrolliert</div>' : ''}
+          ${d.nodeType === 'holding' ? '<div class="text-xs text-gray-400 mt-1">Finanzholding</div>' : ''}
+          <div class="critique-message mt-2">${critiqueMessage}</div>
+        `)
+        .style('left', (event.pageX + 10) + 'px')
+        .style('top', (event.pageY - 20) + 'px');
+
+      // Hervorheben des Knotens und verbundener Kanten
+      d3.select(this)
+        .transition()
+        .duration(200)
+        .attr('r', (d: any) => {
+          const currentRadius = parseFloat(d3.select(this).attr('r'));
+          return currentRadius * 1.2;
+        })
+        .attr('stroke', 'var(--highlight)')
+        .attr('stroke-width', 2);
+
+      // Verbundene Links hervorheben
+      link.each(function(l: any) {
+        if (l.source.id === d.id || l.target.id === d.id) {
+          d3.select(this)
+            .transition()
+            .duration(200)
+            .attr('stroke-opacity', 0.8)
+            .attr('stroke-width', l.type === 'full' ? 3 : 2);
+        }
+      });
+    })
+    .on('mousemove', function(event) {
+      tooltip
+        .style('left', (event.pageX + 15) + 'px')
+        .style('top', (event.pageY - 30) + 'px');
+    })
+    .on('mouseout', function(event, d: any) {
+      tooltip.style('display', 'none');
+
+      // Knoten-Stil zurücksetzen
+      d3.select(this)
+        .transition()
+        .duration(200)
+        .attr('r', function(d: any) {
+          if (d.nodeType === 'main') return 18;
+          if (d.nodeType === 'holding') return 14;
+          if (d.nodeType === 'parent') return 12;
+          return 10;
+        })
+        .attr('stroke', (d: any) => d.nodeType === 'holding' || d.nodeType === 'parent' ? 'var(--foreground)' : 'none')
+        .attr('stroke-width', (d: any) => d.nodeType === 'holding' || d.nodeType === 'parent' ? 1.5 : 0);
+
+      // Links zurücksetzen
+      link.transition()
+        .duration(200)
+        .attr('stroke-opacity', 0.5)
+        .attr('stroke-width', d => d.type === 'full' ? 2 : 1);
+    })
+    .on('click', function(event, d: CompanyNode) {
+      if (onNodeClick && d.id) {
+        event.preventDefault();
+        onNodeClick(d.id);
+      }
+    });
+
+    // Update positions on simulation tick
+    simulation.on('tick', () => {
+      // Begrenze Positionen innerhalb des sichtbaren Bereichs
+      companies.forEach((d: any) => {
+        d.x = Math.max(50, Math.min(width - 50, d.x));
+        d.y = Math.max(50, Math.min(height - 50, d.y));
+      });
+
+      link
+        .attr('x1', (d: any) => d.source.x)
+        .attr('y1', (d: any) => d.source.y)
+        .attr('x2', (d: any) => d.target.x)
+        .attr('y2', (d: any) => d.target.y);
+
+      node
+        .attr('cx', (d: any) => d.x)
+        .attr('cy', (d: any) => d.y);
+
+      labels
+        .attr('x', (d: any) => d.x)
+        .attr('y', (d: any) => d.y);
+    });
+
+    // Sanfte Zoom-Funktionalität
+    const zoom = d3.zoom()
+      .scaleExtent([0.3, 3])
+      .on('zoom', (event) => {
+        container.attr('transform', event.transform);
+      });
+
+    svg.call(zoom as any);
+
+    // Drag-Funktionen mit verbesserter Interaktion
+    function dragstarted(event: any, d: any) {
+      if (!event.active) simulation.alphaTarget(0.3).restart();
+      d.fx = d.x;
+      d.fy = d.y;
+    }
+
+    function dragged(event: any, d: any) {
+      d.fx = event.x;
+      d.fy = event.y;
+    }
+
+    function dragended(event: any, d: any) {
+      if (!event.active) simulation.alphaTarget(0);
+      // Hauptknoten fixiert lassen, andere freigeben
+      if (d.nodeType !== 'main') {
+        d.fx = null;
+        d.fy = null;
+      }
+    }
+
+    // Startup-Animation für flüssiges Erscheinen
+    companies.forEach((d: any, i: number) => {
+      const delay = i * 50;
+      d.x = width / 2;
+      d.y = height / 2;
+    });
+
+    simulation.alpha(1).restart();
 
     return () => {
-      window.removeEventListener("resize", handleResize);
       simulation.stop();
     };
-  }, [companies, relationships]);
+  }, [companies, relationships, onNodeClick, critiqueMessage]);
 
   return (
-    <div className="w-full h-full relative">
-      <svg 
-        ref={svgRef} 
-        className="w-full h-full bg-gray-900/50 rounded-lg border border-gray-800"
-      />
+    <div className="relative network-container">
+      {/* Informative Layer über dem Graphen */}
+      <div className="absolute top-4 left-4 z-10 bg-opacity-80 bg-[#1c1c1e] p-3 rounded-lg border border-[#333] max-w-xs">
+        <h3 className="text-sm font-bold mb-2">Konzernverflechtungen</h3>
+        <div className="text-xs space-y-1">
+          <div className="flex items-center">
+            <span className="inline-block w-3 h-3 rounded-full bg-[var(--primary)] mr-2"></span>
+            <span>Vollbesitz (&gt;50%)</span>
+          </div>
+          <div className="flex items-center">
+            <span className="inline-block w-3 h-3 rounded-full bg-[var(--secondary)] mr-2"></span>
+            <span>Teilbesitz</span>
+          </div>
+          <div className="flex items-center">
+            <span className="inline-block w-3 h-3 rounded-full border border-white bg-[var(--tertiary)] mr-2"></span>
+            <span>Holdings / Finanzstrukturen</span>
+          </div>
+        </div>
+      </div>
+      
+      {/* Hauptgraph */}
+      <svg ref={svgRef} width="100%" height="100%"></svg>
+      
+      {/* Verbesserter Tooltip */}
       <div 
         ref={tooltipRef} 
-        className="absolute invisible bg-gray-800 p-2 rounded-md shadow-lg text-sm text-white border border-gray-700 z-10"
-      />
+        className="tooltip" 
+        style={{ display: 'none' }}
+      ></div>
       
-      {selectedNode && (
-        <div className="absolute top-4 right-4 bg-gray-800/90 p-4 rounded-lg border border-gray-700 max-w-xs">
-          <h3 className="text-lg font-bold mb-2">{selectedNode.label}</h3>
-          {selectedNode.industry && (
-            <p className="text-sm mb-1"><span className="text-gray-400">Industry:</span> {selectedNode.industry}</p>
-          )}
-          {selectedNode.country && (
-            <p className="text-sm mb-1"><span className="text-gray-400">Country:</span> {selectedNode.country}</p>
-          )}
-          {selectedNode.foundingYear && (
-            <p className="text-sm mb-1"><span className="text-gray-400">Founded:</span> {selectedNode.foundingYear}</p>
-          )}
-          {selectedNode.url && (
-            <a 
-              href={selectedNode.url} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-sm text-cyan-400 hover:underline mt-2 inline-block"
-            >
-              View on Wikidata
-            </a>
-          )}
-          <button 
-            onClick={() => setSelectedNode(null)}
-            className="absolute top-2 right-2 text-gray-400 hover:text-white"
-            aria-label="Close"
-          >
-            ✕
-          </button>
-        </div>
-      )}
+      {/* Minimalistisches Bedienungshinweis */}
+      <div className="absolute bottom-4 right-4 text-xs text-gray-500">
+        Zoom mit Scrollrad, Verschieben mit Drag & Drop
+      </div>
     </div>
   );
 }

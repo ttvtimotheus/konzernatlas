@@ -1,106 +1,206 @@
 "use client";
 
-import { useState } from "react";
-import CompanySearch from "@/components/CompanySearch";
-import NetworkGraph from "@/components/NetworkGraph";
-import InfoBox from "@/components/InfoBox";
-import { CompanyNode, CompanyRelationship } from "@/types/company";
+import React from 'react';
+import Link from 'next/link';
+import { styled, keyframes, fadeIn, pulseNode } from '@/styles/stitches.config';
+import Button from '@/components/ui/Button';
 
-export default function Home() {
-  const [companies, setCompanies] = useState<CompanyNode[]>([]);
-  const [relationships, setRelationships] = useState<CompanyRelationship[]>([]);
-  const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+// Animationen für die Homepage
+const glitchText = keyframes({
+  '0%': { textShadow: '0.05em 0 0 rgba(255,59,48,0.75), -0.05em -0.025em 0 rgba(255,149,0,0.75)' },
+  '14%': { textShadow: '0.05em 0 0 rgba(255,59,48,0.75), -0.05em -0.025em 0 rgba(255,149,0,0.75)' },
+  '15%': { textShadow: '-0.05em -0.025em 0 rgba(255,59,48,0.75), 0.025em 0.025em 0 rgba(255,149,0,0.75)' },
+  '49%': { textShadow: '-0.05em -0.025em 0 rgba(255,59,48,0.75), 0.025em 0.025em 0 rgba(255,149,0,0.75)' },
+  '50%': { textShadow: '0.025em 0.05em 0 rgba(255,59,48,0.75), 0.05em 0 0 rgba(255,149,0,0.75)' },
+  '99%': { textShadow: '0.025em 0.05em 0 rgba(255,59,48,0.75), 0.05em 0 0 rgba(255,149,0,0.75)' },
+  '100%': { textShadow: '-0.025em 0 0 rgba(255,59,48,0.75), -0.025em -0.025em 0 rgba(255,149,0,0.75)' },
+});
 
-  const handleCompanySelect = async (companyId: string, companyName: string) => {
-    setIsLoading(true);
-    setError(null);
-    setSelectedCompany(companyName);
-    
-    try {
-      const response = await fetch(`/api/companyRelationships?id=${encodeURIComponent(companyId)}`);
-      if (!response.ok) {
-        throw new Error(`Error: ${response.status}`);
-      }
-      const data = await response.json();
-      setCompanies(data.companies);
-      setRelationships(data.relationships);
-    } catch (error) {
-      console.error('Failed to fetch company data:', error);
-      setError('Failed to fetch company data. Please try again later.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+const slideUp = keyframes({
+  '0%': { transform: 'translateY(10px)', opacity: 0 },
+  '100%': { transform: 'translateY(0)', opacity: 1 },
+});
 
+// Styled Components für die Homepage
+const HeroContainer = styled('div', {
+  position: 'relative',
+  display: 'flex',
+  flexDirection: 'column',
+  minHeight: '100vh',
+  paddingTop: '$12',
+  paddingBottom: '$20',
+  overflow: 'hidden',
+});
+
+const ContentContainer = styled('div', {
+  position: 'relative',
+  zIndex: 10,
+  width: '100%',
+  maxWidth: '1200px',
+  margin: '0 auto',
+  padding: '$4',
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '$8',
+  
+  '@md': {
+    padding: '$8',
+  },
+});
+
+const HeroTitle = styled('h1', {
+  fontSize: '$5xl',
+  fontWeight: '$bold',
+  lineHeight: '$tight',
+  letterSpacing: '$tighter',
+  marginBottom: '$4',
+  fontFamily: '$mono',
+  color: '$foreground',
+  position: 'relative',
+  display: 'inline-block',
+  animation: `${glitchText} 3s infinite alternate`,
+  
+  '@md': {
+    fontSize: '$7xl',
+  },
+});
+
+const SubTitle = styled('h2', {
+  fontSize: '$xl',
+  fontWeight: '$normal',
+  lineHeight: '$normal',
+  maxWidth: '800px',
+  marginBottom: '$8',
+  animation: `${slideUp} 0.8s ease-out forwards`,
+  animationDelay: '0.3s',
+  opacity: 0,
+  
+  '@md': {
+    fontSize: '$2xl',
+    maxWidth: '900px',
+  },
+});
+
+const Description = styled('p', {
+  fontSize: '$base',
+  lineHeight: '$normal',
+  maxWidth: '600px',
+  marginBottom: '$8',
+  color: '$gray11',
+  animation: `${slideUp} 0.8s ease-out forwards`,
+  animationDelay: '0.5s',
+  opacity: 0,
+});
+
+const ButtonGroup = styled('div', {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '$4',
+  animation: `${slideUp} 0.8s ease-out forwards`,
+  animationDelay: '0.7s',
+  opacity: 0,
+  
+  '@md': {
+    flexDirection: 'row',
+  },
+});
+
+const Quote = styled('blockquote', {
+  fontStyle: 'italic',
+  borderLeft: '2px solid $primary',
+  paddingLeft: '$4',
+  marginTop: '$12',
+  fontSize: '$sm',
+  color: '$gray10',
+  maxWidth: '800px',
+  animation: `${slideUp} 0.8s ease-out forwards`,
+  animationDelay: '0.9s',
+  opacity: 0,
+});
+
+const Attribution = styled('div', {
+  fontSize: '$xs',
+  color: '$gray9',
+  marginTop: '$2',
+});
+
+const SourceInfo = styled('div', {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '$2',
+  marginTop: '$12',
+  fontSize: '$sm',
+  color: '$gray11',
+  animation: `${slideUp} 0.8s ease-out forwards`,
+  animationDelay: '1.1s',
+  opacity: 0,
+  
+  '@md': {
+    marginTop: '$16',
+  },
+});
+
+const InfoText = styled('p', {
+  maxWidth: '800px',
+  lineHeight: '$loose',
+});
+
+const StyledLink = styled('a', {
+  color: '$primary',
+  textDecoration: 'none',
+  position: 'relative',
+  
+  '&:hover': {
+    textDecoration: 'underline',
+  },
+});
+
+export default function HomePage() {
   return (
-    <div className="flex flex-col space-y-8 min-h-[calc(100vh-200px)]">
-      <section className="max-w-2xl mx-auto w-full text-center">
-        <h1 className="text-3xl font-bold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-teal-400">
-          Unternehmensbeziehungen visualisiert
-        </h1>
-        <p className="text-gray-300 mb-6">
-          Entdecken Sie Eigentumsverhältnisse und Verflechtungen von Unternehmen auf Basis von Wikidata.
-        </p>
-        
-        <CompanySearch onCompanySelect={handleCompanySelect} />
-      </section>
+    <HeroContainer>
+      {/* Animierter Hintergrund */}
+      <div className="glitch-background" aria-hidden="true"></div>
       
-      <section className="flex-1 w-full">
-        {isLoading && (
-          <div className="flex items-center justify-center h-[60vh]">
-            <div className="w-12 h-12 border-t-4 border-cyan-500 border-solid rounded-full animate-spin"></div>
-            <span className="ml-3 text-gray-400">Lade Daten...</span>
-          </div>
-        )}
+      <ContentContainer>
+        <HeroTitle>Wem gehört die Welt?</HeroTitle>
         
-        {error && (
-          <div className="bg-red-900/20 border border-red-800 text-red-200 rounded-lg p-4 max-w-lg mx-auto text-center">
-            <p className="font-medium mb-2">Fehler</p>
-            <p className="text-sm">{error}</p>
-          </div>
-        )}
+        <SubTitle>
+          Enthülle die globalen Konzernstrukturen. Wissen ist Widerstand.
+        </SubTitle>
         
-        {!isLoading && !error && companies.length === 0 && (
-          <div className="text-center py-16 px-4 bg-gray-900/50 rounded-lg border border-gray-800 max-w-2xl mx-auto">
-            <h2 className="text-xl font-medium mb-3 text-gray-200">Unternehmen suchen</h2>
-            <p className="text-gray-400 mb-6">Suchen Sie nach einem Unternehmen, um dessen Eigentumsstruktur zu visualisieren.</p>
-            <div className="max-w-md mx-auto text-sm text-left text-gray-400 bg-gray-800/50 p-4 rounded-md border border-gray-700">
-              <p className="font-medium mb-1">Beispiele:</p>
-              <ul className="list-disc list-inside space-y-1">
-                <li>Volkswagen</li>
-                <li>Deutsche Telekom</li>
-                <li>Nestlé</li>
-                <li>Meta Platforms</li>
-              </ul>
-            </div>
-          </div>
-        )}
+        <Description>
+          Der Konzernatlas visualisiert die Verflechtungen zwischen Unternehmen und zeigt die wahren Machtstrukturen hinter globalen Konzernen.
+        </Description>
         
-        {!isLoading && !error && companies.length > 0 && (
-          <div className="flex flex-col space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-medium text-gray-200">
-                Netzwerkgraph: <span className="text-cyan-400">{selectedCompany}</span>
-              </h2>
-              <div className="text-sm text-gray-400">
-                {companies.length} Unternehmen · {relationships.length} Verbindungen
-              </div>
-            </div>
-            
-            <div className="h-[60vh] bg-gray-900/20 rounded-lg border border-gray-800 overflow-hidden">
-              <NetworkGraph companies={companies} relationships={relationships} />
-            </div>
-            
-            <div className="text-xs text-gray-500 text-center italic">
-              Hinweis: Ziehen Sie Knoten, um das Diagramm neu zu arrangieren. Scrollen Sie zum Zoomen.
-            </div>
-          </div>
-        )}
-      </section>
-      
-      <InfoBox />
-    </div>
+        <ButtonGroup>
+          <Button as={Link} href="/corporations" variant="primary" size="lg">
+            Top-Konzerne erkunden
+          </Button>
+          
+          <Button as={Link} href="/random" variant="secondary" size="lg">
+            Zufälliger Konzern
+          </Button>
+        </ButtonGroup>
+        
+        <Quote>
+          "Die Konzentration von Eigentum ist kein Zufall, sondern systembedingte Notwendigkeit. Was als freier Markt begann, endet in Monopolen und Oligopolen."
+          <Attribution>- Kritische Ökonomietheorie</Attribution>
+        </Quote>
+        
+        <SourceInfo>
+          <InfoText>
+            Basierend auf <StyledLink href="https://www.wikidata.org" target="_blank" rel="noopener noreferrer">Wikidata</StyledLink> • Open Source • Daten freigegeben
+          </InfoText>
+          
+          <InfoText>
+            Dieser Graph zeigt nur das Sichtbare. Die wahre Macht bleibt verborgen. Die Kontrolle über Ressourcen, Märkte und Menschen konzentriert sich immer weiter.
+          </InfoText>
+          
+          <InfoText>
+            Daten von <StyledLink href="https://www.wikidata.org" target="_blank" rel="noopener noreferrer">Wikidata</StyledLink> • Frei und Open Source
+          </InfoText>
+        </SourceInfo>
+      </ContentContainer>
+    </HeroContainer>
   );
 }
