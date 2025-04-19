@@ -12,9 +12,9 @@ export const getMetadata = (
   return {
     title: metaTitle,
     description,
-    keywords: ["Konzernatlas", "Unternehmen", "Konzernverflechtungen", "Wikidata", "Visualisierung", "Unternehmensbesitz"],
-    authors: [{ name: "Timotheus Haseloff" }],
-    creator: "Timotheus Haseloff",
+    keywords: ["Konzernatlas", "Unternehmensverflechtungen", "Konzernverflechtungen", "Corporate ownership", "Corporate networks", "Unternehmensnetzwerke", "Global corporate structures", "Firmenbesitz", "Corporate transparency", "Konzerntransparenz", "Wirtschaftsmacht", "Capitalism criticism", "Kapitalismuskritik", "Graph visualization", "Netzwerkvisualisierung", "D3.js network", "SPARQL query", "Open data visualization", "Next.js web app", "Wikidata API"],
+    authors: [{ name: "Timo Haseloff" }],
+    creator: "Timo Haseloff",
     openGraph: {
       title: metaTitle,
       description,

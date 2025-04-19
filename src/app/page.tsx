@@ -7,6 +7,7 @@ import LoadingSpinner from "@/components/LoadingSpinner";
 import ErrorMessage from "@/components/ErrorMessage";
 import SearchResultInfo from "@/components/SearchResultInfo";
 import EmptyState from "@/components/EmptyState";
+import InfoBox from "@/components/InfoBox";
 import { CompanyNode, CompanyRelationship } from "@/types/company";
 
 export default function Home() {
@@ -57,6 +58,10 @@ export default function Home() {
         
         <div className="max-w-lg mx-auto">
           <CompanySearch onCompanySelect={handleCompanySelect} />
+        </div>
+        
+        <div className="mt-4 flex justify-center">
+          <InfoBox />
         </div>
       </header>
 
