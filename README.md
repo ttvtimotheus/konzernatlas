@@ -1,36 +1,73 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Konzernatlas - Wer gehört wem?
 
-## Getting Started
+Eine moderne, minimalistische Web-App zur Visualisierung globaler Konzernverflechtungen, die auf Wikidata-Daten basiert.
 
-First, run the development server:
+## Beschreibung
+
+Konzernatlas ermöglicht es Nutzern, Unternehmen zu suchen und deren Verbindungen zu anderen Unternehmen in Form eines interaktiven Netzwerkgraphen zu visualisieren. Die Daten werden in Echtzeit von Wikidata über SPARQL-Abfragen abgerufen.
+
+## Hauptfunktionen
+
+- **Unternehmenssuche** mit Autovervollständigung
+- **Visualisierung von Besitzverhältnissen** in Form eines interaktiven Netzwerkgraphen
+- **Anzeige von Details** zu Unternehmen (Name, Branche, Land, Gründungsjahr)
+- **Responsive Design** für Desktop und Mobile
+
+## Technologie-Stack
+
+- **Frontend:** Next.js, React
+- **Styling:** Tailwind CSS
+- **UI-Komponenten:** Radix UI
+- **Visualisierung:** D3.js
+- **Datenquelle:** Wikidata SPARQL-Endpoint
+
+## Installation
 
 ```bash
+# Repository klonen
+git clone https://github.com/ttvtimotheus/konzernatlas.git
+cd konzernatlas
+
+# Abhängigkeiten installieren
+npm install
+
+# Entwicklungsserver starten
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Verwendung
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. Geben Sie den Namen eines Unternehmens in das Suchfeld ein
+2. Wählen Sie ein Unternehmen aus den Vorschlägen
+3. Der Netzwerkgraph wird automatisch generiert und zeigt die Besitzverhältnisse
+4. Fahren Sie mit der Maus über Knoten, um Details zu sehen
+5. Ziehen Sie Knoten, um den Graphen neu anzuordnen
+6. Zoomen Sie mit dem Mausrad, um die Ansicht anzupassen
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## SPARQL Beispiel-Abfrage
 
-## Learn More
+```sparql
+SELECT ?childCompanyLabel ?parentCompanyLabel
+WHERE {
+  ?childCompany wdt:P31 wd:Q783794.  # instance of company
+  ?childCompany wdt:P127+ ?parentCompany. # 'owned by', beliebig viele Ebenen
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }
+}
+LIMIT 1000
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Mitwirkende
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- Timotheus Haseloff
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Lizenz
 
-## Deploy on Vercel
+Dieses Projekt ist unter der MIT-Lizenz lizenziert - siehe die LICENSE-Datei für Details.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Danksagung
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Wikidata für die Bereitstellung der offenen Daten
+- D3.js für die Visualisierungs-Bibliothek
+- Next.js für das React-Framework
+
+
