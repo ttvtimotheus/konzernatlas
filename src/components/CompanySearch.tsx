@@ -90,7 +90,7 @@ export default function CompanySearch({ onCompanySelect }: CompanySearchProps) {
   };
 
   return (
-    <div className="company-search relative">
+    <div className="w-full max-w-xl relative">
       <div className="relative">
         <input
           ref={inputRef}
@@ -98,14 +98,14 @@ export default function CompanySearch({ onCompanySelect }: CompanySearchProps) {
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           onKeyDown={handleKeyDown}
-          onFocus={() => searchTerm.trim().length >= 2 && setSuggestions.length > 0 && setShowSuggestions(true)}
+          onFocus={() => searchTerm.trim().length >= 2 && suggestions.length > 0 && setShowSuggestions(true)}
           placeholder="Unternehmen suchen..."
-          className="w-full p-3 bg-transparent border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+          className="w-full p-3 bg-gray-800/50 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all"
           aria-label="Unternehmen suchen"
         />
         {isLoading && (
           <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-            <div className="w-5 h-5 border-t-2 border-primary rounded-full animate-spin"></div>
+            <div className="w-5 h-5 border-t-2 border-cyan-500 rounded-full animate-spin"></div>
           </div>
         )}
       </div>
@@ -113,7 +113,7 @@ export default function CompanySearch({ onCompanySelect }: CompanySearchProps) {
       {showSuggestions && suggestions.length > 0 && (
         <div 
           ref={suggestionsRef}
-          className="absolute z-10 mt-1 w-full max-h-60 overflow-auto rounded-md bg-gray-800 shadow-lg"
+          className="absolute z-10 mt-1 w-full max-h-60 overflow-auto rounded-md bg-gray-800 shadow-lg border border-gray-700"
         >
           <ul className="py-1">
             {suggestions.map((company, index) => (
@@ -124,7 +124,7 @@ export default function CompanySearch({ onCompanySelect }: CompanySearchProps) {
                 }`}
                 onClick={() => handleSelectCompany(company)}
               >
-                <div className="font-medium">{company.label}</div>
+                <div className="font-medium text-white">{company.label}</div>
                 {company.description && (
                   <div className="text-xs text-gray-400 mt-0.5">{company.description}</div>
                 )}

@@ -1,12 +1,22 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import Logo from "@/components/Logo";
-import { getMetadata } from "./metadata";
 
-const inter = Inter({ subsets: ["latin"] });
+const geistSans = Geist({
+  variable: "--font-geist-sans",
+  subsets: ["latin"],
+});
 
-export const metadata: Metadata = getMetadata();
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
+
+export const metadata: Metadata = {
+  title: "Konzernatlas - Unternehmensbeziehungen visualisiert",
+  description: "Visualisiere Unternehmensbeziehungen und Eigentumsverhältnisse auf Basis von Wikidata",
+  keywords: ["Unternehmensbeziehungen", "Konzernstruktur", "Datenvisualisierung", "Wikidata"],
+};
 
 export default function RootLayout({
   children,
@@ -15,34 +25,27 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="de">
-      <head>
-        <link rel="icon" href="/custom-icon.svg" type="image/svg+xml" />
-      </head>
-      <body className={inter.className}>
-        <header className="border-b border-border py-3 mb-6">
-          <div className="container mx-auto flex justify-between items-center px-4">
-            <div className="flex items-center gap-3">
-              <Logo />
-              <span className="text-xl font-bold">Konzernatlas</span>
-            </div>
-            <a 
-              href="https://github.com/ttvtimotheus/konzernatlas" 
-              target="_blank" 
-              rel="noopener noreferrer" 
-              className="text-muted hover:text-primary transition-colors"
-            >
-              GitHub
-            </a>
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} bg-gray-950 text-white antialiased`}
+      >
+        <header className="container mx-auto py-4 px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between">
+            <div className="text-2xl font-bold text-cyan-400">Konzernatlas</div>
+            <nav className="text-sm">
+              <a href="https://github.com/ttvtimotheus/konzernatlas" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-white transition-colors">
+                GitHub
+              </a>
+            </nav>
           </div>
         </header>
-        <main className="min-h-screen p-4 md:p-8">
+        <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
           {children}
         </main>
-        <footer className="attribution border-t border-border py-4 mt-8">
-          <div className="container mx-auto text-center">
-            <p>Data from <a href="https://www.wikidata.org/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Wikidata</a></p>
-            <p className="text-xs text-muted mt-1">© {new Date().getFullYear()} Konzernatlas</p>
-          </div>
+        <footer className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 text-center text-sm text-gray-500">
+          <p>
+            Daten via <a href="https://www.wikidata.org" target="_blank" rel="noopener noreferrer" className="text-cyan-600 hover:text-cyan-500 transition-colors">Wikidata</a> (CC0) • 
+            © {new Date().getFullYear()} Konzernatlas
+          </p>
         </footer>
       </body>
     </html>
