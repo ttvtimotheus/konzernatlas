@@ -1,8 +1,9 @@
 "use client";
 
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useState, useCallback } from "react";
 import * as d3 from "d3";
 import { CompanyNode, CompanyRelationship } from "@/types/company";
+import GraphControls from "./GraphControls";
 
 interface NetworkGraphProps {
   companies: CompanyNode[];
@@ -13,6 +14,7 @@ export default function NetworkGraph({ companies, relationships }: NetworkGraphP
   const svgRef = useRef<SVGSVGElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+  const zoomRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null);
 
   // Set up dimensions on mount and resize
   useEffect(() => {
@@ -192,6 +194,9 @@ export default function NetworkGraph({ companies, relationships }: NetworkGraphP
     
     svg.call(zoom);
     
+    // Store zoom reference for controls
+    zoomRef.current = zoom;
+    
     // Helper functions
     function getNodeColor(d: CompanyNode) {
       const colors = ["#00bcd4", "#4fc3f7", "#64ffda", "#80deea", "#b2ebf2"];
@@ -228,8 +233,34 @@ export default function NetworkGraph({ companies, relationships }: NetworkGraphP
     };
   }, [dimensions, companies, relationships]);
   
+  // Zoom control handlers
+  const handleZoomIn = useCallback(() => {
+    if (svgRef.current && zoomRef.current) {
+      const svg = d3.select<SVGSVGElement, unknown>(svgRef.current);
+      zoomRef.current.scaleBy(svg.transition().duration(300) as any, 1.3);
+    }
+  }, []);
+
+  const handleZoomOut = useCallback(() => {
+    if (svgRef.current && zoomRef.current) {
+      const svg = d3.select<SVGSVGElement, unknown>(svgRef.current);
+      zoomRef.current.scaleBy(svg.transition().duration(300) as any, 0.7);
+    }
+  }, []);
+
+  const handleReset = useCallback(() => {
+    if (svgRef.current && zoomRef.current) {
+      const svg = d3.select<SVGSVGElement, unknown>(svgRef.current);
+      (svg.transition().duration(500) as any)
+        .call(
+          zoomRef.current.transform,
+          d3.zoomIdentity.translate(dimensions.width / 2, dimensions.height / 2).scale(0.8)
+        );
+    }
+  }, [dimensions]);
+  
   return (
-    <>
+    <div className="relative w-full h-full">
       <svg 
         ref={svgRef} 
         width={dimensions.width} 
@@ -241,6 +272,11 @@ export default function NetworkGraph({ companies, relationships }: NetworkGraphP
         className="tooltip" 
         style={{ opacity: 0 }}
       />
-    </>
+      <GraphControls 
+        onZoomIn={handleZoomIn} 
+        onZoomOut={handleZoomOut} 
+        onReset={handleReset} 
+      />
+    </div>
   );
 }
