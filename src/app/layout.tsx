@@ -2,13 +2,11 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import Logo from "@/components/Logo";
+import { getMetadata } from "./metadata";
 
 const inter = Inter({ subsets: ["latin"] });
 
-export const metadata: Metadata = {
-  title: "Konzernatlas - Wer gehört wem?",
-  description: "Eine Visualisierung globaler Konzernverflechtungen basierend auf Wikidata",
-};
+export const metadata: Metadata = getMetadata();
 
 export default function RootLayout({
   children,
@@ -17,6 +15,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="de">
+      <head>
+        <link rel="icon" href="/custom-icon.svg" type="image/svg+xml" />
+      </head>
       <body className={inter.className}>
         <header className="border-b border-border py-3 mb-6">
           <div className="container mx-auto flex justify-between items-center px-4">
