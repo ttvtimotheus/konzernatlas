@@ -5,6 +5,8 @@ import CompanySearch from "@/components/CompanySearch";
 import NetworkGraph from "@/components/NetworkGraph";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import ErrorMessage from "@/components/ErrorMessage";
+import SearchResultInfo from "@/components/SearchResultInfo";
+import EmptyState from "@/components/EmptyState";
 import { CompanyNode, CompanyRelationship } from "@/types/company";
 
 export default function Home() {
@@ -76,20 +78,34 @@ export default function Home() {
         />
 
       ) : companies.length > 0 && relationships.length > 0 ? (
-        <div className="network-container">
-          <NetworkGraph 
+        <>
+          <SearchResultInfo 
             companies={companies} 
             relationships={relationships} 
+            selectedCompany={selectedCompany} 
           />
-        </div>
+          <div className="network-container">
+            <NetworkGraph 
+              companies={companies} 
+              relationships={relationships} 
+            />
+          </div>
+        </>
       ) : selectedCompany ? (
-        <div className="text-center py-10">
-          <p>Keine Verbindungen gefunden für {selectedCompany}.</p>
-        </div>
+        <EmptyState
+          title="Keine Verbindungen gefunden"
+          description={`Für das Unternehmen "${selectedCompany}" konnten keine Besitzverhältnisse in der Wikidata-Datenbank gefunden werden.`}
+        />
       ) : (
-        <div className="text-center py-10">
-          <p>Suchen Sie nach einem Unternehmen, um dessen Besitzstrukturen zu visualisieren.</p>
-        </div>
+        <EmptyState
+          title="Unternehmen entdecken"
+          description="Suchen Sie nach einem Unternehmen, um dessen Besitzstrukturen und globale Verflechtungen zu visualisieren. Die Daten werden in Echtzeit von Wikidata abgerufen."
+          action={
+            <div className="max-w-sm mx-auto mt-4 border border-border rounded-lg p-3">
+              <p className="text-sm text-muted mb-2">Beispiele: Siemens, Amazon, Volkswagen</p>
+            </div>
+          }
+        />
       )}
     </div>
   );
