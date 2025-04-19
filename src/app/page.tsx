@@ -4,6 +4,7 @@ import { useState } from "react";
 import CompanySearch from "@/components/CompanySearch";
 import NetworkGraph from "@/components/NetworkGraph";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import ErrorMessage from "@/components/ErrorMessage";
 import { CompanyNode, CompanyRelationship } from "@/types/company";
 
 export default function Home() {
@@ -12,11 +13,13 @@ export default function Home() {
   const [companies, setCompanies] = useState<CompanyNode[]>([]);
   const [relationships, setRelationships] = useState<CompanyRelationship[]>([]);
   const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
+  const [lastSearchId, setLastSearchId] = useState<string>("");
 
   const handleCompanySelect = async (companyId: string, companyName: string) => {
     setIsLoading(true);
     setError(null);
     setSelectedCompany(companyName);
+    setLastSearchId(companyId);
     
     try {
       const response = await fetch(`/api/companyRelationships?id=${encodeURIComponent(companyId)}`);
@@ -67,10 +70,11 @@ export default function Home() {
           <p className="text-center mt-4">Lade Unternehmensdaten...</p>
         </div>
       ) : error ? (
-        <div className="error-container">
-          <h3 className="text-xl font-semibold mb-2">Fehler</h3>
-          <p>{error}</p>
-        </div>
+        <ErrorMessage 
+          message={error} 
+          retry={() => lastSearchId && selectedCompany ? handleCompanySelect(lastSearchId, selectedCompany) : undefined} 
+        />
+
       ) : companies.length > 0 && relationships.length > 0 ? (
         <div className="network-container">
           <NetworkGraph 
