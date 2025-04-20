@@ -2,7 +2,7 @@
 
 # KONZERNATLAS
 
-<img src="public/logo.png" alt="Konzernatlas Logo" width="120"/>
+<img src="public/custom-icon.svg" alt="Konzernatlas Logo" width="120"/>
 
 ### WEM GEHÖRT DIE WELT?
 
@@ -145,6 +145,6 @@ Dieses Projekt ist unter der MIT-Lizenz veröffentlicht. Siehe [LICENSE](./LICEN
 - **Der kritischen Netzgemeinde** für Feedback und Unterstützung
 
 <div align="center">
-<sub>© 2025 Konzernatlas — Ein Projekt von Timotheus Haseloff</sub>
+<sub>Konzernatlas — Ein Projekt von Timo Haseloff und Contributors!</sub>
 </div>
 
