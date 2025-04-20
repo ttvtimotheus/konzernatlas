@@ -77,7 +77,7 @@ const ContentContainer = styled('div', {
   position: 'relative',
   zIndex: 10,
   width: '90%',
-  maxWidth: '800px',
+  maxWidth: '800px', // Maximale Breite für bessere Lesbarkeit
   margin: '0 auto',
   paddingTop: '10vh',
   paddingBottom: '10vh',
@@ -98,7 +98,7 @@ const HeroTitle = styled('h1', {
   fontSize: 'clamp(2.5rem, 10vw, 5rem)',
   fontWeight: 900,
   lineHeight: 1, 
-  letterSpacing: '-0.01em',
+  letterSpacing: '0.05em', // Erhöhter Buchstabenabstand für monumentaleren Look
   margin: '0',
   padding: '0',
   fontFamily: '"Space Mono", monospace',
@@ -146,7 +146,7 @@ const ButtonGroup = styled('div', {
   gap: '1.2rem',
   width: '100%',
   maxWidth: '450px',
-  margin: '1rem auto 4rem',
+  margin: '2rem auto 5rem', // Mehr vertikaler Abstand
   animation: `${fadeInUp} 800ms ease forwards`,
   animationDelay: '600ms',
   opacity: 0,
@@ -159,12 +159,12 @@ const ButtonGroup = styled('div', {
 
 const Quote = styled('blockquote', {
   position: 'relative',
-  fontStyle: 'italic',
+  fontStyle: 'italic', // Bereits kursiv
   border: 'none',
   padding: '2rem 2rem 2rem 3rem',
   margin: '5rem auto',
   width: '85%',
-  maxWidth: '750px',
+  maxWidth: '700px', // Optimale Lesebreite
   fontSize: '1.05rem',
   lineHeight: 1.5,
   color: '#e0e0e0',
@@ -185,12 +185,12 @@ const Quote = styled('blockquote', {
   },
 });
 
-const Attribution = styled('div', {
-  fontSize: '0.85rem',
-  color: '#999',
-  marginTop: '1rem',
+const Attribution = styled('footer', {
+  marginTop: '1.5rem',
+  fontWeight: 400,
+  fontSize: '0.9rem',
   textAlign: 'right',
-  fontWeight: 500,
+  color: '#aaaaaa', // Hellere Farbe für bessere Lesbarkeit
 });
 
 const Footer = styled('footer', {
@@ -240,7 +240,7 @@ const SourceInfo = styled('div', {
 const InfoText = styled('p', {
   maxWidth: '650px',
   margin: '0 auto',
-  lineHeight: 1.6,
+  lineHeight: 1.6, // Erhöhter Zeilenabstand im Footer
 });
 
 const StyledLink = styled('a', {
@@ -303,11 +303,12 @@ export default function HomePage() {
                 fontSize: '0.95rem',
                 padding: '0.8rem 1.5rem',
                 boxShadow: '0 2px 12px rgba(255, 48, 48, 0.25)',
+                transition: 'all 0.2s ease-in-out', // Sanfte Transition
                 '&:hover': { 
-                  backgroundColor: '#ff0000',
-                  transform: 'translateY(-2px)',
+                  backgroundColor: '#e60000', // Dunkleres Rot beim Hover
+                  transform: 'translateY(-2px) scale(1.02)', // Leichte Vergrößerung
                   boxShadow: '0 4px 20px rgba(255, 48, 48, 0.4)',
-                },
+                },  
                 '&:active': {
                   transform: 'translateY(1px)',
                 }
@@ -330,10 +331,12 @@ export default function HomePage() {
                 fontSize: '0.95rem',
                 padding: '0.8rem 1.5rem',
                 border: '1px solid #444',
+                transition: 'all 0.2s ease-in-out', // Sanfte Transition
                 '&:hover': { 
-                  backgroundColor: '#333',
+                  backgroundColor: '#333', // Leicht aufgehellter Hintergrund
                   borderColor: '#555',
-                } 
+                  transform: 'translateY(-2px) scale(1.02)', // Gleiche Vergrößerung wie beim roten Button
+                }  
               }}
             >
               ZUFÄLLIGER KONZERN
@@ -353,6 +356,17 @@ export default function HomePage() {
             Diese Plattform ist ein Versuch, das <strong>Unsichtbare sichtbar</strong> zu machen.<br/>
             Wissen ist Widerstand. Teilen ist Revolution.
           </RadicalMessage>
+          
+          {/* Neue radikale Abschlusszeile */}
+          <p style={{
+            fontSize: '0.8rem',
+            color: '#cccccc',
+            textAlign: 'center',
+            marginTop: '2rem',
+            fontStyle: 'italic'
+          }}>
+            Märkte sind nicht frei. Sie werden gemacht.
+          </p>
           
           <SourceInfo>
             <InfoText>
