@@ -1,31 +1,70 @@
-# Konzernatlas - Wer gehört wem?
+<div align="center">
 
-Eine moderne, minimalistische Web-App zur Visualisierung globaler Konzernverflechtungen, die auf Wikidata-Daten basiert.
+# KONZERNATLAS
 
-## Beschreibung
+<img src="public/logo.png" alt="Konzernatlas Logo" width="120"/>
 
-Konzernatlas ermöglicht es Nutzern, Unternehmen zu suchen und deren Verbindungen zu anderen Unternehmen in Form eines interaktiven Netzwerkgraphen zu visualisieren. Die Daten werden in Echtzeit von Wikidata über SPARQL-Abfragen abgerufen.
+### WEM GEHÖRT DIE WELT?
 
-## Hauptfunktionen
+_Ein digitales Werkzeug gegen die Intransparenz ökonomischer Macht_
 
-- **Unternehmenssuche** mit Autovervollständigung
-- **Visualisierung von Besitzverhältnissen** in Form eines interaktiven Netzwerkgraphen
-- **Anzeige von Details** zu Unternehmen (Name, Branche, Land, Gründungsjahr)
-- **Responsive Design** für Desktop und Mobile
+[![GitHub license](https://img.shields.io/github/license/ttvtimotheus/konzernatlas?style=flat-square)](https://github.com/ttvtimotheus/konzernatlas/blob/main/LICENSE)
+[![SPARQL](https://img.shields.io/badge/SPARQL-Wikidata-blue?style=flat-square)](https://query.wikidata.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-13.x-black?style=flat-square)](https://nextjs.org/)
+[![Stitches](https://img.shields.io/badge/styling-Stitches-purple?style=flat-square)](https://stitches.dev/)
+[![D3.js](https://img.shields.io/badge/visualization-D3.js-orange?style=flat-square)](https://d3js.org/)
 
-## Technologie-Stack
+</div>
 
-- **Frontend:** Next.js, React
-- **Styling:** Tailwind CSS
-- **UI-Komponenten:** Radix UI
-- **Visualisierung:** D3.js
-- **Datenquelle:** Wikidata SPARQL-Endpoint
+## 🔍 ÜBER DAS PROJEKT
 
-## Installation
+**Konzernatlas** visualisiert die verborgenen Verflechtungen zwischen globalen Konzernen und deckt die wahren Machtstrukturen hinter den größten Unternehmen der Welt auf. Das Projekt verfolgt einen dezidiert **kapitalismuskritischen Ansatz**, indem es ökonomische Konzentrationsprozesse sichtbar macht und zur kritischen Auseinandersetzung mit Eigentumsstrukturen anregt.
+
+> "Die Konzentration von Eigentum ist kein Zufall, sondern systembedingte Notwendigkeit. Was als freier Markt begann, endet in Monopolen und Oligopolen. Kapitalismus schafft nicht Vielfalt, sondern Hegemonie."
+
+## ✨ KERNFUNKTIONEN
+
+- **Transparent** — Visualisierung komplexer Konzernverflechtungen in Echtzeit
+- **Netzwerkzentriert** — Interaktive Graphdarstellung von Eigentumsverhältnissen
+- **Datenbasiert** — Nutzung strukturierter Open Data von Wikidata
+- **Kritisch** — Offenlegung von Machtkonzentrationen und ökonomischen Abhängigkeiten
+- **Zugänglich** — Intuitive Benutzeroberfläche für alle Zielgruppen
+
+## 🔮 DEMO
+
+Besuchen Sie [konzernatlas.de](https://konzernatlas.de), um die Live-Version zu erkunden.
+
+<div align="center">
+<img src="screenshot.png" alt="Konzernatlas Screenshot" width="800"/>
+</div>
+
+## 🛠️ TECHNOLOGIE
+
+```mermaid
+graph LR
+    A[Wikidata] -->|SPARQL| B[API]
+    B --> C[Next.js]
+    C --> D[Stitches CSS]
+    C --> E[D3.js]
+    E --> F[Netzwerkvisualisierung]
+    D --> G[UI Komponenten]
+    G --> H[User Interface]
+    F --> H
+```
+
+- **Framework:** Next.js (App Router) mit TypeScript
+- **Styling:** Stitches + Radix UI für kapitalismuskritisches Design
+- **Datenvisualisierung:** D3.js für interaktive Graphen
+- **Datenquelle:** Wikidata SPARQL Endpoint
+- **Deployment:** Vercel
+
+## 🚀 INSTALLATION
 
 ```bash
 # Repository klonen
 git clone https://github.com/ttvtimotheus/konzernatlas.git
+
+# Projektverzeichnis wechseln
 cd konzernatlas
 
 # Abhängigkeiten installieren
@@ -35,39 +74,77 @@ npm install
 npm run dev
 ```
 
-## Verwendung
+Öffnen Sie [http://localhost:3000](http://localhost:3000) in Ihrem Browser, um die lokale Entwicklungsversion zu sehen.
 
-1. Geben Sie den Namen eines Unternehmens in das Suchfeld ein
-2. Wählen Sie ein Unternehmen aus den Vorschlägen
-3. Der Netzwerkgraph wird automatisch generiert und zeigt die Besitzverhältnisse
-4. Fahren Sie mit der Maus über Knoten, um Details zu sehen
-5. Ziehen Sie Knoten, um den Graphen neu anzuordnen
-6. Zoomen Sie mit dem Mausrad, um die Ansicht anzupassen
+## 🧪 VERWENDUNG
 
-## SPARQL Beispiel-Abfrage
+1. **Suchen** — Namen eines Unternehmens eingeben
+2. **Auswählen** — Passenden Treffer aus den Vorschlägen wählen
+3. **Erkunden** — Besitzverhältnisse im interaktiven Netzwerkgraphen analysieren
+4. **Interagieren** — Durch Hover, Zoom und Drag die Verflechtungen entdecken
+5. **Teilen** — Einzigartige URL für jedes Unternehmensnetzwerk weitergeben
+
+## 📊 DATENMODELL
+
+Das Projekt nutzt ein komplexes SPARQL-Abfragemodell, um Unternehmensverflechtungen direkt von Wikidata abzurufen:
 
 ```sparql
-SELECT ?childCompanyLabel ?parentCompanyLabel
+SELECT ?company ?companyLabel ?parentCompany ?parentCompanyLabel ?percentOwned ?country ?countryLabel ?industry ?industryLabel
 WHERE {
-  ?childCompany wdt:P31 wd:Q783794.  # instance of company
-  ?childCompany wdt:P127+ ?parentCompany. # 'owned by', beliebig viele Ebenen
-  SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }
+  # Basis-Informationen zum Unternehmen
+  VALUES ?company { wd:Q380 } # Beispiel: Amazon
+  ?company wdt:P31/wdt:P279* ?type .
+  VALUES ?type { wd:Q783794 wd:Q4830453 } # Unternehmen/Business
+  
+  # Besitzverhältnisse finden
+  ?company wdt:P127 ?parentCompany .
+  OPTIONAL { ?company wdt:P1198 ?percentOwned . }
+  
+  # Zusätzliche Metadaten
+  OPTIONAL { ?company wdt:P17 ?country . }
+  OPTIONAL { ?company wdt:P452 ?industry . }
+  
+  # Labels für alle Entitäten
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en,de". }
 }
-LIMIT 1000
 ```
 
-## Mitwirkende
+## 📝 BEITRAGEN
 
-- Timotheus Haseloff
+Beiträge sind willkommen! Um zum Projekt beizutragen:
 
-## Lizenz
+1. Forken Sie das Repository
+2. Erstellen Sie einen Feature-Branch (`git checkout -b feature/AmazingFeature`)
+3. Committen Sie Ihre Änderungen (`git commit -m 'Add: Amazing Feature'`)
+4. Pushen Sie den Branch (`git push origin feature/AmazingFeature`)
+5. Öffnen Sie einen Pull Request
 
-Dieses Projekt ist unter der MIT-Lizenz lizenziert - siehe die LICENSE-Datei für Details.
+## 📜 PHILOSOPHIE
 
-## Danksagung
+Der Konzernatlas folgt in seiner Konzeption und Gestaltung einer klaren **kapitalismuskritischen Perspektive**. Das Projekt versteht sich als Beitrag zur Aufklärung über verborgene ökonomische Machtstrukturen und will:
 
-- Wikidata für die Bereitstellung der offenen Daten
-- D3.js für die Visualisierungs-Bibliothek
-- Next.js für das React-Framework
+- **Sichtbar machen**, was sonst verborgen bleibt
+- **Bewusstsein schaffen** für Konzentrationsprozesse im globalen Kapitalismus
+- **Zugänglich machen**, was normalerweise hinter komplexen Datenstrukturen verschwindet
+- **Ermächtigen** durch Wissen über reale Machtverteilungen
 
+> Wissen ist Widerstand. Teilen ist Revolution.
+> 
+> Märkte sind nicht frei. Sie werden gemacht.
+
+## 📄 LIZENZ
+
+Dieses Projekt ist unter der MIT-Lizenz veröffentlicht. Siehe [LICENSE](./LICENSE) für Details.
+
+## 🙏 DANKSAGUNG
+
+- **Wikidata** für den freien Zugang zu strukturierten Daten
+- **D3.js** für die mächtige Visualisierungsbibliothek
+- **Next.js** für das innovative Reaktionsnetz-Framework
+- **Stitches/Radix UI** für die flexiblen Styling-Möglichkeiten
+- **Der kritischen Netzgemeinde** für Feedback und Unterstützung
+
+<div align="center">
+<sub>© 2025 Konzernatlas — Ein Projekt von Timotheus Haseloff</sub>
+</div>
 
