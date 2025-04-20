@@ -212,6 +212,9 @@ export default function GraphPage({ params }: { params: { id: string } }) {
   const [error, setError] = useState<string | null>(null);
   const [critiqueMessage, setCritiqueMessage] = useState('');
   
+  // Speichere die ID in einer lokalen Variablen, um sie im useEffect sicher zu verwenden
+  const companyId = params.id;
+  
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
@@ -219,7 +222,7 @@ export default function GraphPage({ params }: { params: { id: string } }) {
       setCritiqueMessage(getRandomCritique());
       
       try {
-        const response = await fetch(`/api/companyRelationships?id=${encodeURIComponent(params.id)}`);
+        const response = await fetch(`/api/companyRelationships?id=${encodeURIComponent(companyId)}`);
         
         if (!response.ok) {
           throw new Error(`Netzwerkfehler: ${response.status}`);
@@ -246,13 +249,13 @@ export default function GraphPage({ params }: { params: { id: string } }) {
     };
     
     loadData();
-  }, [params.id]);
+  }, [companyId]); // Verwende die lokale Variable statt params.id
   
   // Funktion zum Navigieren zu einem anderen Unternehmen im Graph
-  const handleNodeClick = (companyId: string) => {
+  const handleNodeClick = (clickedCompanyId: string) => {
     // Nur navigieren, wenn es ein anderes Unternehmen ist
-    if (companyId !== params.id) {
-      window.location.href = `/graph/${companyId}`;
+    if (clickedCompanyId !== companyId) {
+      window.location.href = `/graph/${clickedCompanyId}`;
     }
   };
   

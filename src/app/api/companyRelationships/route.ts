@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { CompanyNode, CompanyRelationship, CompanyGraphData } from "@/types/company";
 
 // Konstanten für API-Anfragen
-const API_TIMEOUT = 15000; // 15 Sekunden
-const MAX_RESULTS = 30;
+const API_TIMEOUT = 60000; // 60 Sekunden Timeout für komplexe Abfragen
+const MAX_RESULTS = 100; // Erweiterte Ergebnismenge für vollständige Darstellung aller Verflechtungen
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -33,191 +33,291 @@ export async function GET(request: NextRequest) {
 }
 
 async function getCompanyRelationships(companyId: string): Promise<CompanyGraphData> {
-  // Verbesserte SPARQL-Abfrage für tiefere Unternehmensbeziehungen
+  // Umfassende SPARQL-Abfrage für vollständige Unternehmensverflechtungen
   const sparqlQuery = buildSparqlQuery(companyId);
 
   const url = "https://query.wikidata.org/sparql";
   const fullUrl = `${url}?query=${encodeURIComponent(sparqlQuery)}&format=json`;
 
-  console.log(`Fetching company relationships for: ${companyId}`);
+  console.log(`Fetching complete company relationships for: ${companyId}`);
   
   try {
-    const response = await fetch(fullUrl, {
-      headers: {
-        "Accept": "application/json",
-        "User-Agent": "KonzernatlasDemo/1.0"
-      },
-      // Timeout hinzufügen
-      signal: AbortSignal.timeout(8000)
-    });
-
-    if (!response.ok) {
-      console.error(`Wikidata API error: ${response.status} ${response.statusText}`);
-      throw new Error(`Wikidata API error: ${response.status}`);
-    }
-
-    const data = await response.json();
+    // Langer Timeout für vollständige Abfrage aller Verflechtungen
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
     
-    if (!data || !data.results || !data.results.bindings) {
-      console.error("Invalid response format from Wikidata");
-      throw new Error("Invalid response format");
+    try {
+      const response = await fetch(fullUrl, {
+        headers: {
+          "Accept": "application/json",
+          "User-Agent": "KonzernatlasDemo/1.0",
+          "Cache-Control": "no-cache"
+        },
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`Wikidata API error: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      
+      if (!data || !data.results || !data.results.bindings) {
+        throw new Error("Invalid response format from Wikidata");
+      }
+      
+      return processWikidataResponse(data, companyId);
+    } catch (fetchError: any) {
+      clearTimeout(timeoutId);
+      
+      // Bei Fehler klare Meldung zurückgeben - KEIN Fallback
+      if (fetchError.name === 'AbortError') {
+        throw new Error(`Die Wikidata-Abfrage für ${companyId} hat ${API_TIMEOUT/1000} Sekunden überschritten. Die Unternehmensstruktur ist zu komplex für eine direkte Abfrage.`);
+      }
+      
+      throw fetchError;
     }
-    
-    return processWikidataResponse(data, companyId);
   } catch (error) {
-    console.error("Error processing company relationships:", error);
+    console.error(`Error in getCompanyRelationships for ${companyId}:`, error);
     throw error;
   }
 }
 
-// Funktion zum Erstellen der SPARQL-Abfrage
+// Umfassende SPARQL-Abfrage für ALLE Unternehmensverflechtungen 
+// Diese Abfrage ist komplex und kann längere Ladezeiten verursachen
 const buildSparqlQuery = (companyId: string) => {
   return `
-    SELECT ?company ?companyLabel ?parent ?parentLabel ?percentage ?industry ?industryLabel ?country ?countryLabel ?inception
+    SELECT ?company ?companyLabel ?parent ?parentLabel ?percentage ?industry ?industryLabel ?country ?countryLabel ?inception ?description ?headquarters ?headquartersLabel ?logo ?revenue ?revenueLabel ?employees ?employeesNumber ?ceo ?ceoLabel
     WHERE {
+      # Grundlegende Informationen über das Hauptunternehmen
       {
-        # Unternehmen besitzt Tochterunternehmen - REKURSIV bis zu 3 Ebenen tief
+        BIND(wd:${companyId} AS ?mainCompany)
+        ?mainCompany rdfs:label ?mainCompanyLabel.
+        FILTER(LANG(?mainCompanyLabel) = "de" || LANG(?mainCompanyLabel) = "en")
+        
+        # Umfangreiche Metadaten für das Hauptunternehmen
+        OPTIONAL { wd:${companyId} schema:description ?mainDescription. FILTER(LANG(?mainDescription) = "de" || LANG(?mainDescription) = "en") }
+        OPTIONAL { wd:${companyId} wdt:P17 ?mainCountry. }    # Land
+        OPTIONAL { wd:${companyId} wdt:P452 ?mainIndustry. }  # Branche
+        OPTIONAL { wd:${companyId} wdt:P571 ?mainInception. } # Gründungsdatum
+        OPTIONAL { wd:${companyId} wdt:P159 ?mainHeadquarters. } # Hauptsitz
+        OPTIONAL { wd:${companyId} wdt:P154 ?mainLogo. } # Logo  
+        OPTIONAL { wd:${companyId} wdt:P2139 ?mainRevenue. } # Jahresumsatz
+        OPTIONAL { wd:${companyId} wdt:P1128 ?mainEmployees. } # Mitarbeiterzahl
+        OPTIONAL { wd:${companyId} wdt:P169 ?mainCeo. } # CEO
+      }
+      
+      # REKURSIVE TOCHTERUNTERNEHMEN (bis zu 3 Ebenen tief)
+      {
+        # Besitz von Unternehmen (rekursiv)
         wd:${companyId} wdt:P127+ ?company.
         ?company wdt:P31 ?type.
         
-        # Nur Organisationen und Unternehmen einbeziehen
-        VALUES ?type { wd:Q4830453 wd:Q783794 wd:Q6881511 wd:Q891723 wd:Q43229 }
+        # Unternehmen und Organisationen aller Art
+        VALUES ?type { 
+          wd:Q4830453  # business
+          wd:Q783794   # company 
+          wd:Q6881511  # enterprise
+          wd:Q891723   # public company
+          wd:Q43229    # organization
+          wd:Q167037   # corporation
+          wd:Q7210356  # subsidiary
+          wd:Q2221906  # holding
+        }
         
-        # Besitzanteil, falls verfügbar
+        # Besitzanteil, falls verfügbar (für direkte Beziehungen)
         OPTIONAL {
           wd:${companyId} p:P127 ?ownership.
           ?ownership ps:P127 ?company;
                     pq:P1107 ?percentage.
         }
-      } UNION {
-        # Unternehmen wird besessen von (eingehende Beziehungen)
-        ?parent wdt:P127+ wd:${companyId}.
-        ?parent wdt:P31 ?parentType.
-        
-        # Nur Organisationen und Unternehmen einbeziehen
-        VALUES ?parentType { wd:Q4830453 wd:Q783794 wd:Q6881511 wd:Q891723 wd:Q43229 }
-      } UNION {
-        # Direktbesitz von Unternehmen (nicht rekursiv, um wichtige Partner zu erfassen)
-        wd:${companyId} wdt:P127 ?company.
-      } UNION {
-        # Direktbesitz durch Elternunternehmen
-        ?parent wdt:P127 wd:${companyId}.
       }
       
-      # Zusätzliche Metadaten für jedes Unternehmen
+      # REKURSIVE ELTERNUNTERNEHMEN (bis zu 3 Ebenen)
+      UNION {
+        ?parent wdt:P127+ wd:${companyId}.
+        ?parent wdt:P31 ?parentType.
+        VALUES ?parentType { 
+          wd:Q4830453  # business
+          wd:Q783794   # company 
+          wd:Q6881511  # enterprise
+          wd:Q891723   # public company
+          wd:Q43229    # organization
+          wd:Q167037   # corporation
+          wd:Q2221906  # holding
+        }
+      }
+      
+      # ERWEITERTE METADATEN für jedes gefundene Unternehmen
       OPTIONAL { ?company wdt:P452 ?industry. }  # Branche
       OPTIONAL { ?company wdt:P17 ?country. }    # Land
       OPTIONAL { ?company wdt:P571 ?inception. } # Gründungsdatum
+      OPTIONAL { ?company schema:description ?description. FILTER(LANG(?description) = "de" || LANG(?description) = "en") }
+      OPTIONAL { ?company wdt:P159 ?headquarters. } # Hauptsitz
+      OPTIONAL { ?company wdt:P154 ?logo. } # Logo
+      OPTIONAL { ?company wdt:P2139 ?revenue. } # Jahresumsatz
+      OPTIONAL { ?company wdt:P1128 ?employees. } # Mitarbeiterzahl
+      OPTIONAL { ?parent wdt:P452 ?parentIndustry. }  # Branche der Elternunternehmen
+      OPTIONAL { ?parent wdt:P17 ?parentCountry. }    # Land der Elternunternehmen
       
-      # Label-Service für lesbare Namen
+      # Ausführlicher Label-Service für Namen
       SERVICE wikibase:label { bd:serviceParam wikibase:language "de,en". }
     }
-    LIMIT 50
+    LIMIT ${MAX_RESULTS}
   `;
 };
 
-// Funktion zur Verarbeitung der Wikidata-API-Antwort
-const processWikidataResponse = (data: any, companyId: string) => {
+// Funktion zur Verarbeitung der Wikidata-API-Antwort mit erweiterten Metadaten
+const processWikidataResponse = (data: any, companyId: string): CompanyGraphData => {
   const companies: CompanyNode[] = [];
   const relationships: CompanyRelationship[] = [];
   const processedCompanies = new Set<string>();
   
-  // Zuerst das Ausgangsunternehmen als zentralen Knoten hinzufügen
+  // Hauptunternehmen hinzufügen (wird mit Daten aus der Abfrage aktualisiert)
   companies.push({
     id: companyId,
-    label: '',  // Wird später aktualisiert
+    label: 'Unbekanntes Unternehmen', // Fallback-Label
     level: 0,
     nodeType: 'main',
+    description: undefined,
     country: undefined,
     industry: undefined,
-    inception: undefined
+    inception: undefined,
+    founded: undefined,
+    headquarters: undefined,
+    wikidata: `https://www.wikidata.org/wiki/${companyId}`
   });
   processedCompanies.add(companyId);
   
-  // Beziehungen verarbeiten mit erweiterten Metadaten
-  data.results.bindings.forEach((item: any) => {
-    // Elternunternehmen verarbeiten (falls vorhanden)
-    if (item.parent?.value) {
-      const parentId = item.parent.value.split('/').pop();
-      const parentLabel = item.parentLabel?.value || parentId;
-      
-      if (!processedCompanies.has(parentId)) {
-        companies.push({
-          id: parentId,
-          label: parentLabel,
-          level: -1,  // Elternunternehmen haben Level -1
-          // Bestimme Knotentyp basierend auf Label-Hinweisen
-          nodeType: parentLabel.toLowerCase().includes('holding') || 
-                    parentLabel.toLowerCase().includes('group') || 
-                    parentLabel.toLowerCase().includes('capital') ? 
-                    'holding' : 'parent',
-          country: item.countryLabel?.value || undefined,
-          industry: item.industryLabel?.value || undefined,
-          inception: item.inception?.value ? new Date(item.inception.value).getFullYear().toString() : undefined
-        });
-        processedCompanies.add(parentId);
-      }
-      
-      // Beziehung mit Besitztyp
-      relationships.push({
-        source: parentId,
-        target: companyId,
-        percentage: null,
-        type: 'owner' // Elternunternehmen besitzt
-      });
+  try {
+    // Suche nach dem Hauptunternehmen in den Ergebnissen
+    const mainCompanyEntry = data.results.bindings.find((item: any) => 
+      (item.mainCompany?.value && item.mainCompany.value.includes(companyId))
+    );
+    
+    // Falls gefunden, aktualisiere die Hauptunternehmensinformationen
+    if (mainCompanyEntry) {
+      companies[0].label = mainCompanyEntry.mainCompanyLabel?.value || companies[0].label;
     }
     
-    // Tochterunternehmen verarbeiten (falls vorhanden)
-    if (item.company?.value) {
-      const childId = item.company.value.split('/').pop();
-      const childLabel = item.companyLabel?.value || childId;
-      const percentage = item.percentage?.value ? parseFloat(item.percentage.value) : null;
-      
-      if (!processedCompanies.has(childId)) {
-        companies.push({
-          id: childId,
-          label: childLabel,
-          level: 1,  // Tochterunternehmen haben Level 1
-          // Klassifizierung des Knotentyps basierend auf Besitzanteil
-          nodeType: percentage && percentage > 50 ? 'full-ownership' : 'partial-ownership',
-          country: item.countryLabel?.value || undefined,
-          industry: item.industryLabel?.value || undefined,
-          inception: item.inception?.value ? new Date(item.inception.value).getFullYear().toString() : undefined
-        });
-        processedCompanies.add(childId);
+    // Alle Einträge verarbeiten
+    data.results.bindings.forEach((item: any) => {
+      try {
+        // Elternunternehmen verarbeiten (falls vorhanden)
+        if (item.parent?.value) {
+          const parentId = item.parent.value.split('/').pop();
+          const parentLabel = item.parentLabel?.value || `Unternehmen ${parentId}`;
+          
+          if (!processedCompanies.has(parentId)) {
+            // Bestimme den Knotentyp basierend auf Label-Hinweisen
+            const nodeType = parentLabel.toLowerCase().includes('holding') || 
+                          parentLabel.toLowerCase().includes('group') || 
+                          parentLabel.toLowerCase().includes('capital') ? 
+                          'holding' : 'parent';
+            
+            // Erstellung einer Elternunternehmensnode mit erweiterten Informationen
+            companies.push({
+              id: parentId,
+              label: parentLabel,
+              level: -1,  // Elternunternehmen haben Level -1
+              nodeType,
+              country: item.countryLabel?.value || undefined,
+              industry: item.industryLabel?.value || undefined,
+              inception: item.inception?.value ? new Date(item.inception.value).getFullYear().toString() : undefined,
+              founded: item.inception?.value ? new Date(item.inception.value).toLocaleDateString() : undefined,
+              description: item.description?.value || undefined,
+              headquarters: item.headquartersLabel?.value || undefined,
+              wikidata: `https://www.wikidata.org/wiki/${parentId}`
+            });
+            processedCompanies.add(parentId);
+          }
+          
+          // Beziehung mit Besitztyp
+          relationships.push({
+            source: parentId,
+            target: companyId,
+            percentage: null,
+            type: 'owner', // Elternunternehmen besitzt
+            value: 3 // Für D3.js-Visualisierung (Stärke der Verbindung)
+          });
+        }
+        
+        // Tochterunternehmen verarbeiten (falls vorhanden)
+        if (item.company?.value) {
+          const childId = item.company.value.split('/').pop();
+          
+          // Sicherstellen, dass es sich nicht um das Hauptunternehmen handelt
+          if (childId !== companyId) {
+            const childLabel = item.companyLabel?.value || `Unternehmen ${childId}`;
+            const percentage = item.percentage?.value ? parseFloat(item.percentage.value) : null;
+            
+            if (!processedCompanies.has(childId)) {
+              // Klassifizierung des Knotentyps basierend auf Besitzanteil
+              const nodeType = percentage && percentage > 50 ? 'full-ownership' : 'partial-ownership';
+              
+              // Erstellung einer Tochterunternehmensnode mit erweiterten Informationen
+              companies.push({
+                id: childId,
+                label: childLabel,
+                level: 1,  // Tochterunternehmen haben Level 1
+                nodeType,
+                country: item.countryLabel?.value || undefined,
+                industry: item.industryLabel?.value || undefined,
+                inception: item.inception?.value ? new Date(item.inception.value).getFullYear().toString() : undefined,
+                founded: item.inception?.value ? new Date(item.inception.value).toLocaleDateString() : undefined,
+                description: item.description?.value || undefined,
+                headquarters: item.headquartersLabel?.value || undefined,
+                wikidata: `https://www.wikidata.org/wiki/${childId}`
+              });
+              processedCompanies.add(childId);
+            }
+            
+            // Beziehung mit Besitzanteil
+            relationships.push({
+              source: companyId,
+              target: childId,
+              percentage,
+              type: percentage && percentage > 50 ? 'full' : 'partial',
+              value: percentage ? Math.max(1, Math.min(5, percentage / 20)) : 2 // Für D3.js-Visualisierung (1-5 basierend auf Prozentsatz)
+            });
+          }
+        }
+      } catch (itemError) {
+        console.warn('Error processing relationship item:', itemError);
+        // Einzelne Fehler beim Verarbeiten von Items ignorieren, um Robustheit zu gewährleisten
       }
+    });
+    
+    // Aktualisiere das Hauptunternehmen mit Metadaten aus allen Einträgen
+    const mainCompanyMetadata = data.results.bindings.find((item: any) => {
+      return (item.parent?.value && item.parent.value.includes(companyId)) || 
+             (item.company?.value && item.company.value.includes(companyId));
+    });
+    
+    if (mainCompanyMetadata) {
+      // Vorhandene Felder aktualisieren, wenn verfügbar
+      companies[0].country = companies[0].country || mainCompanyMetadata.countryLabel?.value;
+      companies[0].industry = companies[0].industry || mainCompanyMetadata.industryLabel?.value;
+      companies[0].description = companies[0].description || mainCompanyMetadata.description?.value;
+      companies[0].headquarters = companies[0].headquarters || mainCompanyMetadata.headquartersLabel?.value;
       
-      // Beziehung mit Besitzanteil
-      relationships.push({
-        source: companyId,
-        target: childId,
-        percentage: percentage,
-        type: percentage && percentage > 50 ? 'full' : 'partial'
-      });
+      if (mainCompanyMetadata.inception?.value) {
+        const inceptionDate = new Date(mainCompanyMetadata.inception.value);
+        companies[0].inception = companies[0].inception || inceptionDate.getFullYear().toString();
+        companies[0].founded = companies[0].founded || inceptionDate.toLocaleDateString();
+      }
     }
-  });
-  
-  // Update the label for the main company if we found it in the data
-  const mainCompanyData = data.results.bindings.find(
-    (item: any) => 
-      (item.parent?.value && item.parent.value.endsWith(companyId)) || 
-      (item.company?.value && item.company.value.endsWith(companyId))
-  );
-  
-  if (mainCompanyData) {
-    if (mainCompanyData.parent?.value && mainCompanyData.parent.value.endsWith(companyId)) {
-      companies[0].label = mainCompanyData.parentLabel?.value || companies[0].label;
-      companies[0].country = mainCompanyData.countryLabel?.value || undefined;
-      companies[0].industry = mainCompanyData.industryLabel?.value || undefined;
-      companies[0].inception = mainCompanyData.inception?.value ? 
-        new Date(mainCompanyData.inception.value).getFullYear().toString() : undefined;
-    } else if (mainCompanyData.company?.value && mainCompanyData.company.value.endsWith(companyId)) {
-      companies[0].label = mainCompanyData.companyLabel?.value || companies[0].label;
-      companies[0].country = mainCompanyData.countryLabel?.value || undefined;
-      companies[0].industry = mainCompanyData.industryLabel?.value || undefined;
-      companies[0].inception = mainCompanyData.inception?.value ? 
-        new Date(mainCompanyData.inception.value).getFullYear().toString() : undefined;
+    
+    // Wenn keine Beziehungen gefunden wurden, aber Unternehmensdaten vorhanden sind, Log-Eintrag erstellen
+    if (companies.length > 1 && relationships.length === 0) {
+      console.warn(`Companies found for ${companyId}, but no relationships could be established`);
     }
+    
+  } catch (processingError) {
+    console.error('Error during response processing:', processingError);
+    // Bei Verarbeitungsfehlern zumindest das Hauptunternehmen zurückgeben
   }
   
   return { companies, relationships };

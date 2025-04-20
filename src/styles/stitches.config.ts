@@ -14,9 +14,9 @@ export const {
   theme: {
     colors: {
       // Kapitalismuskritische Farbpalette
-      background: '#121212',
+      background: '#050505',
       foreground: '#f0f0f0',
-      primary: red.red9, // Full Ownership - Rot
+      primary: '#ff3030', // Full Ownership - Intensives Rot
       secondary: amber.amber9, // Partial Ownership - Orange
       tertiary: gray.gray9, // Holdings - Grau
       muted: gray.gray8,
@@ -190,9 +190,14 @@ export const globalStyles = globalCss({
     color: '$foreground',
     fontFamily: '$mono',
     minHeight: '100vh',
+    width: '100%',
+    maxWidth: '100%',
     overflowX: 'hidden',
     WebkitFontSmoothing: 'antialiased',
     MozOsxFontSmoothing: 'grayscale',
+    // Entfernen von potenziellen weißen Rändern durch Browser-Defaults
+    border: 'none',
+    outline: 'none',
   },
   body: {
     lineHeight: 1.5,
@@ -243,6 +248,23 @@ export const glitch = keyframes({
   '100%': { transform: 'translate(0)' },
 });
 
+export const scanline = keyframes({
+  '0%': { transform: 'translateY(0)' },
+  '100%': { transform: 'translateY(100vh)' },
+});
+
+export const flicker = keyframes({
+  '0%': { opacity: 1.0 },
+  '4%': { opacity: 0.9 },
+  '6%': { opacity: 1.0 },
+  '8%': { opacity: 0.9 },
+  '10%': { opacity: 1.0 },
+  '72%': { opacity: 1.0 },
+  '74%': { opacity: 0.9 },
+  '75%': { opacity: 1.0 },
+  '100%': { opacity: 1.0 },
+});
+
 // Kapitalismuskritische Komponenten-Styles
 export const buttonStyles = {
   display: 'inline-flex',
@@ -250,22 +272,46 @@ export const buttonStyles = {
   justifyContent: 'center',
   fontFamily: '$mono',
   fontWeight: '$bold',
-  borderRadius: '$default',
+  borderRadius: '3px', // Schärfere Kanten für industrielleren Look
+  letterSpacing: '0.5px', // Bessere Lesbarkeit
+  textTransform: 'uppercase', // Kapitalistischer Imperativ
   transition: '$fast',
   
   // Varianten
   variants: {
     variant: {
       primary: {
-        backgroundColor: '$primary',
+        backgroundColor: '#ff3030',
         color: 'white',
-        border: '1px solid $primary',
-        boxShadow: '3px 3px 0 rgba(255, 255, 255, 0.2)',
-        transform: 'skew(-2deg)',
+        border: '1px solid #ff3030',
+        boxShadow: '0 3px 0 rgba(200, 0, 0, 0.5)',
+        position: 'relative',
         
         '&:hover': {
-          transform: 'translateY(-2px) skew(-2deg)',
-          boxShadow: '5px 5px 0 rgba(255, 255, 255, 0.2)',
+          transform: 'translateY(-3px)',
+          boxShadow: '0 6px 0 rgba(200, 0, 0, 0.5)',
+        },
+        
+        '&:active': {
+          transform: 'translateY(0)',
+          boxShadow: '0 0 0 rgba(200, 0, 0, 0.5)',
+        },
+        
+        // Subtiler Glitch-Effekt beim Hover
+        '&::before': {
+          content: '""',
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          background: 'rgba(255, 255, 255, 0.1)',
+          opacity: 0,
+          transition: 'opacity 0.2s ease-in-out',
+        },
+        
+        '&:hover::before': {
+          opacity: 0.2,
         },
       },
       secondary: {

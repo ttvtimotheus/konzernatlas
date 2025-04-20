@@ -173,7 +173,8 @@ const StyledNetworkGraph: React.FC<NetworkGraphProps> = ({ companies, relationsh
   
   // Graph-Visualisierung mit D3
   useEffect(() => {
-    if (!containerRef.current || !svgRef.current || companies.length === 0 || relationships.length === 0) return;
+    if (!containerRef.current || !svgRef.current || companies.length === 0) return;
+    // Wir rendern jetzt auch, wenn keine Beziehungen vorhanden sind (relationships.length === 0)
     
     // Container-Dimensionen
     const width = containerRef.current.clientWidth;
